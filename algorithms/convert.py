@@ -38,17 +38,10 @@ def convert_8_8_10_to_8_8_8(u: np.ndarray, v: np.ndarray, w: np.ndarray) -> tupl
 
 def to_c_code(key: str, u: np.ndarray, v: np.ndarray, w: np.ndarray) -> tuple[str, str]:
     def make_coef(c: int, v: str) -> str:
-        if c == 0:
-            return ""
-        if c == 1:
-            return f" + {v}"
-        if c == -1:
-            return f" - {v}"
-        if c > 0:
-            return f" + {c} * {v}"
-        if c < 0:
-            return f" - {abs(c)} * {v}"
-        raise RuntimeError()
+        if c >= 0:
+            return "".join([f" + {v}" for _ in range(abs(c))])
+        else:
+            return "".join([f" - {v}" for _ in range(abs(c))])
 
     rank = u.shape[1]
     lines = []
