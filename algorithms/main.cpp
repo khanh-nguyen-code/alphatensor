@@ -1,4 +1,4 @@
-#include<cstdio>
+#include<iostream>
 #include<random>
 #include"matmul.h"
 #include"high_precision_timer.h"
@@ -22,6 +22,52 @@ void matmul(double *c, const double *a, const double *b, const int d0, const int
             for (j=0; j<d2; j++) {
                 for (k=0; k<d1; k++) {
                     c[i * d2 + j] += a[i * d1 + k] * b[k * d2 + j];
+                }
+            }
+        }
+    }
+}
+
+const int step = 4;
+auto matmul_unit = alphatensor::matmul_4_4_4;
+void matmul_opt(double *c, const double *a, const double *b, const int d0, const int d1, const int d2) {
+
+    if (d0 % step != 0 or d1 % step != 0 or d2 % step != 0) {
+        std::cerr << "dim error (" << d0 << ", " << d1 << ", " << d2 << ")" << std::endl;
+        std::exit(1);
+    }
+    {
+        int i, j;
+        #pragma omp parallel for shared(c) private(i, j)
+        for (i=0; i<d0; i++) {
+            for (j=0; j<d2; j++) {
+                c[i * d2 + j] = 0.0;
+            }
+        }
+    }
+
+    {
+        int i, j, k;
+        #pragma omp parallel for shared(c) private(i, j, k)
+        for (i=0; i<d0; i += step) {
+            for (j=0; j<d2; j += step) {
+                for (k=0; k<d1; k += step) {
+                    double a_sub[step * step];
+                    double b_sub[step * step];
+                    double c_sub[step * step];
+
+                    for (int s_i=0; s_i < step; s_i++) {
+                        for (int s_j=0; s_j < step; s_j++) {
+                            a_sub[s_i * step + s_j] = a[(i + s_i) * d1 + (k + s_j)];
+                            b_sub[s_i * step + s_j] = b[(k + s_i) * d2 + (j + s_j)];
+                        }
+                    }
+                    matmul_unit(c_sub, a_sub, b_sub);
+                    for (int s_i=0; s_i < step; s_i++) {
+                        for (int s_j=0; s_j < step; s_j++) {
+                            c[(i + s_i) * d2 + (j + s_j)] += c_sub[s_i * step + s_j];
+                        }
+                    }
                 }
             }
         }
@@ -52,8 +98,8 @@ int main() {
     std::default_random_engine e;
     std::uniform_real_distribution<double> dist(0, 1);
     
-    int dim[3] = {8, 8, 8};
-    auto matmul_opt = alphatensor::matmul_8_8_8;
+    const int n = 400;
+    int dim[3] = {n*step, n*step, n*step};
 
     double* a = new double[dim[0] * dim[1]];
     double* b = new double[dim[1] * dim[2]];
@@ -75,10 +121,10 @@ int main() {
     auto t2 = timer::now();
     
     auto t3 = timer::now();
-    matmul_opt(d, a, b);
+    matmul_opt(d, a, b, dim[0], dim[1], dim[2]);
     auto t4 = timer::now();
 
     std::printf("equal %d\n", is_equal(c, d, dim[0] * dim[2]));
-    std::printf("unopt %d\n", t2-t1);
-    std::printf("opt   %d\n", t4-t3);
+    std::printf("unopt %lld\n", t2-t1);
+    std::printf("opt   %lld\n", t4-t3);
 }

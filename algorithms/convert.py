@@ -17,26 +17,6 @@ def realign_index(d1: int, d2: int) -> np.ndarray:
     return c2r
 
 
-def optimize(u: np.ndarray, v: np.ndarray, w: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    sub_j = []
-    for j in range(u.shape[1]):
-        if np.sum(u[:, j] != 0) > 0 and np.sum(v[:, j] != 0) > 0:
-            sub_j.append(j)
-    u, v, w = u[:, sub_j], v[:, sub_j], w[:, sub_j]
-    return u, v, w
-
-
-def convert_8_8_10_to_8_8_8(u: np.ndarray, v: np.ndarray, w: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    sub_i = []
-    for i1 in range(8):
-        for i2 in range(8):
-            sub_i.append(i1 * 10 + i2)
-    v = v[sub_i, :]
-    w = w[sub_i, :]
-
-    return optimize(u, v, w)
-
-
 def to_c_code(key: str, u: np.ndarray, v: np.ndarray, w: np.ndarray) -> tuple[str, str]:
     def make_coef(c: int, v: str) -> str:
         if c >= 0:
@@ -80,7 +60,7 @@ void matmul_{d1}_{d2}_{d3}(double* c, double* a, double* b) {{
 if __name__ == "__main__":
     in_file = "factorizations_r.npz"
     out = "matmul"
-    debug_key = "8,8,8"
+    debug_key = "4,4,4"
 
     with open(in_file, "rb") as f:
         factorizations = dict(np.load(f, allow_pickle=True))
@@ -95,15 +75,6 @@ if __name__ == "__main__":
         aligned_factorizations[key] = (u, v, w)
 
     factorizations = aligned_factorizations
-
-    # 8 8 10 to 8 8 8
-    u, v, w = factorizations["8,8,10"]
-    factorizations["8,8,8"] = convert_8_8_10_to_8_8_8(u, v, w)
-
-    # OPTIMIZE
-    for key, (u, v, w) in factorizations.items():
-        u, v, w = optimize(u, v, w)
-        factorizations[key] = u, v, w
 
     # GEN C CODE
     header_list = []
