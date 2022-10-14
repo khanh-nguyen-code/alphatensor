@@ -112,7 +112,7 @@ int main() {
     std::default_random_engine engine;
     std::uniform_real_distribution<double> dist(0, 1);
     
-    const int n = 1600;
+    const int n = 400;
     int dim[3] = {n*step, n*step, n*step};
 
     double* a = new double[dim[0] * dim[1]];
