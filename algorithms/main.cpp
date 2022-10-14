@@ -7,27 +7,19 @@
 const double eps = 1e-6;
 
 void matmul(double *c, const double *a, const double *b, const int d0, const int d1, const int d2) {
-    {
-        int i, j;
-        #pragma omp parallel for shared(c) private(i, j)
-        for (i=0; i<d0; i++) {
-            for (j=0; j<d2; j++) {
-                c[i * d2 + j] = 0.0;
+    int i, j, k;
+    #pragma omp parallel for shared(c) private(i, j, k)
+    for (i=0; i<d0; i++) {
+        for (j=0; j<d2; j++) {
+            double acc = 0.0;
+            for (k=0; k<d1; k++) {
+                acc += a[i * d1 + k] * b[k * d2 + j];
             }
-        }
-    }
-    {
-        int i, j, k;
-        #pragma omp parallel for shared(c) private(i, j, k)
-        for (i=0; i<d0; i++) {
-            for (j=0; j<d2; j++) {
-                for (k=0; k<d1; k++) {
-                    c[i * d2 + j] += a[i * d1 + k] * b[k * d2 + j];
-                }
-            }
+            c[i * d2 + j] += acc;
         }
     }
 }
+
 
 void matmul_blas(double *c, const double *a, const double *b, const int d0, const int d1, const int d2) {
     // c <- alpha a b + beta c
