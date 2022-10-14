@@ -80,7 +80,7 @@ void matmul_{d1}_{d2}_{d3}(double* c, double* a, double* b) {{
 if __name__ == "__main__":
     in_file = "factorizations_r.npz"
     out = "matmul"
-    debug_key = "2,2,2"
+    debug_key = "8,8,8"
 
     with open(in_file, "rb") as f:
         factorizations = dict(np.load(f, allow_pickle=True))

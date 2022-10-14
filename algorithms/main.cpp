@@ -5,16 +5,24 @@
 
 const double eps = 1e-6;
 
-void matmul(double *c, double *a, double *b, int dim[3]) {
-    for (int i1=0; i1<dim[0]; i1++) {
-        for (int i3=0; i3<dim[2]; i3++) {
-            c[i1 * dim[2] + i3] = 0.0;
+void matmul(double *c, const double *a, const double *b, const int d0, const int d1, const int d2) {
+    {
+        int i, j;
+        #pragma omp parallel for shared(c) private(i, j)
+        for (i=0; i<d0; i++) {
+            for (j=0; j<d2; j++) {
+                c[i * d2 + j] = 0.0;
+            }
         }
     }
-    for (int i1=0; i1<dim[0]; i1++) {
-        for (int i3=0; i3<dim[2]; i3++) {
-            for (int i2=0; i2 < dim[1]; i2++) {
-                c[i1 * dim[2] + i3] += a[i1 * dim[1] + i2] * b[i2 * dim[2] + i3];
+    {
+        int i, j, k;
+        #pragma omp parallel for shared(c) private(i, j, k)
+        for (i=0; i<d0; i++) {
+            for (j=0; j<d2; j++) {
+                for (k=0; k<d1; k++) {
+                    c[i * d2 + j] += a[i * d1 + k] * b[k * d2 + j];
+                }
             }
         }
     }
@@ -64,7 +72,7 @@ int main() {
     }
     auto t1 = timer::now();
     for (int i=0; i<5000000; i++)
-    matmul(c, a, b, dim);
+    matmul(c, a, b, dim[0], dim[1], dim[2]);
     auto t2 = timer::now();
     
     auto t3 = timer::now();
