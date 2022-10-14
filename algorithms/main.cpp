@@ -53,7 +53,7 @@ int main() {
     std::uniform_real_distribution<double> dist(0, 1);
     
     int dim[3] = {8, 8, 8};
-    auto matmul_opt = matmul_8_8_8;
+    auto matmul_opt = alphatensor::matmul_8_8_8;
 
     double* a = new double[dim[0] * dim[1]];
     double* b = new double[dim[1] * dim[2]];
@@ -71,12 +71,10 @@ int main() {
         d[i] = 0;
     }
     auto t1 = timer::now();
-    for (int i=0; i<5000000; i++)
     matmul(c, a, b, dim[0], dim[1], dim[2]);
     auto t2 = timer::now();
     
     auto t3 = timer::now();
-    for (int i=0; i<5000000; i++)
     matmul_opt(d, a, b);
     auto t4 = timer::now();
 

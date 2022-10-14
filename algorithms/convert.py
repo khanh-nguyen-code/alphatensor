@@ -124,9 +124,9 @@ if __name__ == "__main__":
     header = f"""
 #ifndef __MATMUL__
 #define __MATMUL__
-
+namespace alphatensor {{
 {header_list}
-
+}};
 #endif
     """
 
@@ -134,7 +134,9 @@ if __name__ == "__main__":
 
     code = f"""
 #include"{out}.h"
+namespace alphatensor {{
 {code_list}
+}}
     """
 
     with open(out + ".h", "w") as f:
