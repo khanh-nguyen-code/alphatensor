@@ -1,5 +1,6 @@
 #include<iostream>
 #include<random>
+#include<openblas/cblas.h>
 #include"matmul.h"
 #include"high_precision_timer.h"
 
@@ -26,6 +27,19 @@ void matmul(double *c, const double *a, const double *b, const int d0, const int
             }
         }
     }
+}
+
+void matmul_blas(double *c, const double *a, const double *b, const int d0, const int d1, const int d2) {
+    // c <- alpha a b + beta c
+    cblas_dgemm(
+        CblasRowMajor, CblasNoTrans, CblasNoTrans,
+        d0, d2, d1,
+        0.0, // alpha
+        a, d0,
+        b, d1,
+        0.0, // beta
+        c, d0
+    );
 }
 
 const int step = 4;
@@ -95,36 +109,43 @@ bool is_equal(double *a, double *b, int d) {
 }
 
 int main() {
-    std::default_random_engine e;
+    std::default_random_engine engine;
     std::uniform_real_distribution<double> dist(0, 1);
     
-    const int n = 400;
+    const int n = 1600;
     int dim[3] = {n*step, n*step, n*step};
 
     double* a = new double[dim[0] * dim[1]];
     double* b = new double[dim[1] * dim[2]];
     double* c = new double[dim[0] * dim[2]];
     double* d = new double[dim[0] * dim[2]];
+    double* e = new double[dim[0] * dim[2]];
+
 
     for (int i=0; i < dim[0] * dim[1]; i++) {
-        a[i] = dist(e);
+        a[i] = dist(engine);
     }
     for (int i=0; i < dim[1] * dim[2]; i++) {
-        b[i] = dist(e);
+        b[i] = dist(engine);
     }
     for (int i=0; i < dim[0] * dim[2]; i++) {
         c[i] = 0;
         d[i] = 0;
+        e[i] = 0;
     }
     auto t1 = timer::now();
     matmul(c, a, b, dim[0], dim[1], dim[2]);
     auto t2 = timer::now();
     
     auto t3 = timer::now();
-    matmul_opt(d, a, b, dim[0], dim[1], dim[2]);
+    matmul_blas(d, a, b, dim[0], dim[1], dim[2]);
     auto t4 = timer::now();
+    
+    auto t5 = timer::now();
+    matmul_opt(e, a, b, dim[0], dim[1], dim[2]);
+    auto t6 = timer::now();
 
-    std::printf("equal %d\n", is_equal(c, d, dim[0] * dim[2]));
-    std::printf("unopt %lld\n", t2-t1);
-    std::printf("opt   %lld\n", t4-t3);
+    std::printf("equal %d\n", is_equal(c, d, dim[0] * dim[2]) + is_equal(c, e, dim[0] * dim[2]));
+    std::printf("blas           %f\n", ((double) (t4-t3)) / ((double) (t2-t1)));
+    std::printf("alphatensor    %f\n", ((double) (t6-t5)) / ((double) (t2-t1)));
 }

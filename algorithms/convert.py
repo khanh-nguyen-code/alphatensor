@@ -64,25 +64,30 @@ if __name__ == "__main__":
 
     with open(in_file, "rb") as f:
         factorizations = dict(np.load(f, allow_pickle=True))
-
     # ALIGN
     aligned_factorizations = {}
     for key, (u, v, w) in factorizations.items():
         # realign index
-        a, b, c = key.split(",")
-        c2r = realign_index(int(a), int(c))
+        d1, d2, d3 = key.split(",")
+        d1, d2, d3 = int(d1), int(d2), int(d3)
+        c2r = realign_index(d1, d3)
         w = w[c2r, :]
         aligned_factorizations[key] = (u, v, w)
 
     factorizations = aligned_factorizations
 
+    # PRINT
+    for key, (u, v, w) in factorizations.items():
+        d1, d2, d3 = key.split(",")
+        d1, d2, d3 = int(d1), int(d2), int(d3)
+        rank = u.shape[1]
+        print(key, rank, rank / (d1 * d2 * d3))
     # GEN C CODE
     header_list = []
     code_list = []
     for key, (u, v, w) in aligned_factorizations.items():
         # convert
         rank = u.shape[1]
-        print(key, rank)
         if DEBUG and key != debug_key:
             continue
 
