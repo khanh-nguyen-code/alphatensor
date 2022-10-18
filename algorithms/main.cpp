@@ -1,6 +1,6 @@
 #include<iostream>
 #include<random>
-#include<openblas/cblas.h>
+#include<cblas.h>
 #include"matmul.h"
 #include"high_precision_timer.h"
 
