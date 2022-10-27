@@ -43,28 +43,14 @@ import numpy as np
 # https://github.com/google/jax/issues/9218
 import scipy.signal  # pylint: disable=unused-import
 
-from alphatensor.benchmarking import factorizations
-from alphatensor.benchmarking import utils
+import factorizations
+import utils
 
 
 def main():
-  process = subprocess.Popen(['nvidia-smi'], stdout=subprocess.PIPE)
-  output, _ = process.communicate()
-  if 'V100' not in str(output):
-    raise ValueError('To reproduce the results from the paper, please run on a'
-                     'server with V100 GPU.')
-  print('Fixing GPU clock frequency to 1530 to reduce benchmarking variance...')
-  process = subprocess.Popen(
-      'sudo nvidia-smi -pm ENABLED -i 0'.split(' '), stdout=subprocess.PIPE)
-  output, _ = process.communicate()
-  process = subprocess.Popen(
-      'sudo nvidia-smi --lock-gpu-clocks=1530,1530'.split(' '),
-      stdout=subprocess.PIPE)
-  output, _ = process.communicate()
-  print('Done.')
 
-  num_trials = 10
-  matrix_sizes = [8192, 10240, 12288, 14336, 16384, 18432, 20480]
+  num_trials = 5
+  matrix_sizes = [2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480]
 
   factorized_algorithms = [
       ('Strassen^2', factorizations.get_4x4x4_strassen_squared()),
@@ -78,13 +64,11 @@ def main():
     results_dot = utils.benchmark_jnp_dot((s, s, s), num_trials=num_trials)
 
     for algorithm_name, factorization in factorized_algorithms:
-      if algorithm_name == 'AlphaTensor TPU-optimized' and s > 19000:
-        continue  # This TPU-optimized algorithm runs OOM on a V100 GPU.
       results_algorithm = utils.benchmark_factorized_algorithm(
           factorization, (s, s, s), num_trials=num_trials)
       ratio = np.median(results_dot / results_algorithm)
       improvement = 100 * ratio - 100
-      print('%s vs `jnp.dot`: %0.2f%% speedup' % (algorithm_name, improvement))
+      print(f"{algorithm_name} vs `jnp.dot`: {round(improvement, 2)}% speedup")
 
     print('\n\n')
 
